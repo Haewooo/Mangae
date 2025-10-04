@@ -1,0 +1,93 @@
+.layer-control {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 12px;
+  color: white;
+  z-index: 1000;
+  min-width: 280px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.layer-control h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #4fc3f7;
+}
+
+.layer-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.layer-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.layer-item input[type="checkbox"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.layer-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.layer-description {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #aaa;
+  padding-left: 28px;
+}
+
+.ndvi-legend {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ndvi-legend h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #81c784;
+}
+
+.legend-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-gradient {
+  height: 20px;
+  background: linear-gradient(to right,
+    #0000ff 0%,    /* Water: Blue */
+    #654321 25%,   /* Bare soil: Brown */
+    #ffff00 50%,   /* Sparse vegetation: Yellow */
+    #90ee90 75%,   /* Moderate vegetation: Light green */
+    #006400 100%   /* Dense vegetation: Dark green */
+  );
+  border-radius: 4px;
+}
+
+.legend-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #bbb;
+}
+
+.legend-label span:first-child {
+  font-weight: 600;
+  color: white;
+}

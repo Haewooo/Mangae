@@ -1,0 +1,37 @@
+.earth-globe-container {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.earth-globe-container .cesium-widget,
+.earth-globe-container .cesium-viewer {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cesium-viewer-toolbar {
+  top: 50% !important;
+  transform: translateY(-50%);
+}
+
+.cesium-viewer-bottom {
+  display: none !important;
+}
+
+.cesium-credit-logoContainer {
+  display: none !important;
+}
+
+.cesium-credit-textContainer {
+  display: none !important;
+}
+
+.cesium-widget-credits {
+  display: none !important;
+}
