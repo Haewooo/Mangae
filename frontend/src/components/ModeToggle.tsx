@@ -15,16 +15,16 @@ const ModeToggle: React.FC<ModeToggleProps> = ({ layers, onLayerToggle }) => {
   return (
     <div className="mode-toggle-container">
       <button
-        className={`mode-button toggle ${layers.climate ? 'active' : ''}`}
-        onClick={() => onLayerToggle('climate')}
-      >
-        Climate Risk {layers.climate && '✓'}
-      </button>
-      <button
         className={`mode-button toggle ${layers.bloom ? 'active' : ''}`}
         onClick={() => onLayerToggle('bloom')}
       >
-        Bloom Status {layers.bloom && '✓'}
+        Bloom Status
+      </button>
+      <button
+        className={`mode-button toggle ${layers.climate ? 'active' : ''}`}
+        onClick={() => onLayerToggle('climate')}
+      >
+        Climate Risk
       </button>
     </div>
   );

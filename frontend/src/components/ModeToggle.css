@@ -1,41 +1,53 @@
 .mode-toggle-container {
   position: fixed;
-  top: 20px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
   display: flex;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(80px) saturate(200%);
+  -webkit-backdrop-filter: blur(80px) saturate(200%);
+  border-radius: 20px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+              0 0 0 0.5px rgba(255, 255, 255, 0.18) inset,
+              0 1px 0 0 rgba(255, 255, 255, 0.15) inset;
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
 }
 
 .mode-button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 590;
+  letter-spacing: -0.2px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  backdrop-filter: blur(5px);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+  white-space: nowrap;
+  position: relative;
 }
 
 .mode-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.02);
 }
 
 .mode-button.active {
-  background: rgba(233, 30, 99, 0.9);
-  color: white;
-  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.4);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgba(0, 0, 0, 0.95);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.25),
+              0 0 0 0.5px rgba(255, 255, 255, 0.3) inset;
+  font-weight: 600;
+}
+
+.mode-button.active:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.02);
 }

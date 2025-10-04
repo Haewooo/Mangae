@@ -77,7 +77,7 @@ export async function fetchClimateData(
       timestamp: new Date(latestDate)
     };
   } catch (error) {
-    console.error('❌ Failed to fetch NASA POWER data:', error);
+    console.error('Failed to fetch NASA POWER data:', error);
 
     // Return fallback mock data on error
     return {
@@ -127,7 +127,7 @@ export async function fetchNDVIData(
       timestamp: new Date()
     };
   } catch (error) {
-    console.error('❌ Failed to fetch NDVI data:', error);
+    console.error('Failed to fetch NDVI data:', error);
 
     return {
       latitude,
