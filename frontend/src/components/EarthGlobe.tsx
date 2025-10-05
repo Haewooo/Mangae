@@ -8,6 +8,7 @@ import { generateClimateRiskGrid, getClimateRiskColor, getNDVICategory, getNDVIC
 // Removed mock data service imports
 import { BloomDataPoint } from '../types';
 import { americasDataService } from '../services/americasDataService';
+import { herbariumService, HerbariumRecord } from '../services/herbariumService';
 import DataPanel from './DataPanel';
 import ModeToggle, { LayerState } from './ModeToggle';
 import './EarthGlobe.css';
@@ -476,7 +477,7 @@ const EarthGlobe: React.FC = () => {
   const [satellites, setSatellites] = useState(satelliteConfig); // Real-time updatable TLE data
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number, name: string} | null>(null);
   const [selectedCartesian, setSelectedCartesian] = useState<Cartesian3 | null>(null); // Store 3D position for tracking
-  const [activeLayers, setActiveLayers] = useState<LayerState>({ climate: false, bloom: true });
+  const [activeLayers, setActiveLayers] = useState<LayerState>({ climate: false, bloom: true, herbarium: false });
   const [searchQuery, setSearchQuery] = useState('');
 
   // Add debugging for active layers
@@ -489,6 +490,11 @@ const EarthGlobe: React.FC = () => {
   const [dataCache, setDataCache] = useState<Map<string, { data: BloomDataPoint[], timestamp: number }>>(new Map());
   const [cameraHeight, setCameraHeight] = useState<number>(25000000);
   const [lastCameraUpdate, setLastCameraUpdate] = useState<number>(0);
+  const [herbariumData, setHerbariumData] = useState<HerbariumRecord[]>([]);
+  const [herbariumLoaded, setHerbariumLoaded] = useState(false);
+  const [lastHerbariumUpdate, setLastHerbariumUpdate] = useState<number>(0);
+  const [iucnFilter, setIucnFilter] = useState<'all' | 'endangered' | 'CR' | 'EN' | 'VU'>('all');
+  const prevIucnFilterRef = useRef<'all' | 'endangered' | 'CR' | 'EN' | 'VU'>('all');
 
   // Add camera height monitoring
   useEffect(() => {
@@ -519,9 +525,15 @@ const EarthGlobe: React.FC = () => {
     };
   }, [viewerRef.current, cameraHeight]);
 
-  const handleLayerToggle = (layer: 'climate' | 'bloom') => {
+  const handleLayerToggle = (layer: 'climate' | 'bloom' | 'herbarium') => {
     setActiveLayers(prev => {
       const newState = { ...prev, [layer]: !prev[layer] };
+      
+      // Reset IUCN filter when herbarium layer is turned off
+      if (layer === 'herbarium' && prev.herbarium) {
+        setIucnFilter('all');
+      }
+      
       return newState;
     });
   };
@@ -617,6 +629,33 @@ const EarthGlobe: React.FC = () => {
     };
 
     loadGlobalBloomData();
+  }, []);
+
+  // Load herbarium data on mount
+  useEffect(() => {
+    const loadHerbarium = async () => {
+      try {
+        console.log('🌿 Loading herbarium data...');
+        const data = await herbariumService.loadData();
+        setHerbariumData(data);
+        setHerbariumLoaded(true);
+        const stats = herbariumService.getStatistics();
+        console.log('🌿 Herbarium loaded:', stats);
+
+        // Also load IUCN data
+        try {
+          await herbariumService.loadIUCNData();
+          const iucnStats = herbariumService.getIUCNStatistics();
+          console.log('🔴 IUCN statistics:', iucnStats);
+        } catch (iucnError) {
+          console.error('⚠️ IUCN data failed to load, continuing without it:', iucnError);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load herbarium data:', error);
+      }
+    };
+
+    loadHerbarium();
   }, []);
 
   // Load additional regional data when time changes - with caching
@@ -993,6 +1032,41 @@ const EarthGlobe: React.FC = () => {
         return;
       }
 
+      // Check if clicked on herbarium specimen (plant specimen)
+      if (pickedObject && pickedObject.id && pickedObject.id.properties) {
+        const vizType = pickedObject.id.properties.visualizationType?.getValue();
+        
+        if (vizType === 'herbarium') {
+          const species = pickedObject.id.properties.species?.getValue();
+          const scientificName = pickedObject.id.properties.scientificName?.getValue();
+          const family = pickedObject.id.properties.family?.getValue();
+          const locality = pickedObject.id.properties.locality?.getValue();
+          const eventDate = pickedObject.id.properties.eventDate?.getValue();
+          
+          locationName = `${species || scientificName || 'Plant Specimen'}`;
+          if (locality) {
+            locationName += ` - ${locality}`;
+          }
+          
+          console.log('🌿 Clicked on herbarium specimen:', {
+            species,
+            scientificName,
+            family,
+            locality,
+            eventDate
+          });
+          
+          // Don't fly to location for herbarium clicks, just select it
+          setSelectedLocation({
+            lat: latitude,
+            lng: longitude,
+            name: locationName
+          });
+          setSelectedCartesian(cartesian);
+          return;
+        }
+      }
+
       // If clicked on a country polygon, get the country name
       if (pickedObject && pickedObject.id && pickedObject.id.polygon) {
         const entity = pickedObject.id;
@@ -1116,11 +1190,22 @@ const EarthGlobe: React.FC = () => {
     const viewer = viewerRef.current;
     const entities = viewer.entities;
 
-    // Clear all visualization entities (keep satellites and countries)
+    // Clear visualization entities selectively based on active layers
     const visualizationEntities = entities.values.filter((e: any) => {
       if (!e.properties) return false;
       const vizType = e.properties.visualizationType?.getValue?.() || e.properties.visualizationType;
-      return vizType === 'climate' || vizType === 'bloom' || vizType === 'ndvi';
+      
+      // Only remove climate/bloom/ndvi entities always
+      if (vizType === 'climate' || vizType === 'bloom' || vizType === 'ndvi') {
+        return true;
+      }
+      
+      // Remove herbarium entities only if herbarium layer is OFF
+      if (vizType === 'herbarium' && !activeLayers.herbarium) {
+        return true;
+      }
+      
+      return false;
     });
     visualizationEntities.forEach((e: any) => entities.remove(e));
 
@@ -1398,7 +1483,196 @@ const EarthGlobe: React.FC = () => {
       });
     }
 
-  }, [activeLayers, bloomData, globalBloomData, climateData, currentTime, viewerRef.current]);
+    // Display herbarium specimen layer if active
+    if (activeLayers.herbarium && herbariumLoaded && herbariumData.length > 0) {
+      // Performance optimization: Only update herbarium layer if camera moved significantly
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastHerbariumUpdate;
+      const filterChanged = prevIucnFilterRef.current !== iucnFilter;
+      const shouldUpdate = filterChanged || timeSinceLastUpdate > 500; // Update immediately on filter change
+
+      if (shouldUpdate) {
+        setLastHerbariumUpdate(now);
+        prevIucnFilterRef.current = iucnFilter;
+
+        // Clear existing herbarium entities before re-rendering
+        const herbariumEntities = entities.values.filter((e: any) => {
+          if (!e.properties) return false;
+          const vizType = e.properties.visualizationType?.getValue?.() || e.properties.visualizationType;
+          return vizType === 'herbarium';
+        });
+        herbariumEntities.forEach((e: any) => entities.remove(e));
+
+        console.log('🌿 Herbarium layer rendering:', {
+          herbariumLayerActive: activeLayers.herbarium,
+          herbariumDataLength: herbariumData.length,
+          cameraHeight: currentCameraHeight,
+          iucnFilter: iucnFilter,
+          filterChanged: filterChanged
+        });
+
+      // Get current viewport bounds for spatial filtering
+      const camera = viewerRef.current.camera;
+      const viewport = camera.computeViewRectangle();
+      
+      let viewportBounds = {
+        west: -180, east: 180, south: -90, north: 90
+      };
+      
+      if (viewport) {
+        viewportBounds = {
+          west: CesiumMath.toDegrees(viewport.west),
+          east: CesiumMath.toDegrees(viewport.east),
+          south: CesiumMath.toDegrees(viewport.south),
+          north: CesiumMath.toDegrees(viewport.north)
+        };
+      }
+
+      // Calculate adaptive point limits based on zoom level (더 적극적인 제한)
+      let maxPoints: number;
+      let pixelSize: number;
+
+      if (currentCameraHeight < 500000) {         // Very close - zoomed in
+        maxPoints = 2000;
+        pixelSize = 7;
+      } else if (currentCameraHeight < 2000000) { // Close
+        maxPoints = 1000;
+        pixelSize = 6;
+      } else if (currentCameraHeight < 5000000) { // Medium zoom
+        maxPoints = 500;
+        pixelSize = 5;
+      } else if (currentCameraHeight < 15000000) { // Zoomed out
+        maxPoints = 200;
+        pixelSize = 4;
+      } else {                                    // Very zoomed out
+        maxPoints = 100;
+        pixelSize = 3;
+      }
+
+      // Filter by viewport first (spatial filtering for performance)
+      let viewportData = herbariumData.filter(specimen => {
+        if (isNaN(specimen.latitude) || isNaN(specimen.longitude)) return false;
+        
+        // Handle date line wrapping
+        let inViewport = false;
+        if (viewportBounds.west > viewportBounds.east) {
+          // Viewport crosses date line
+          inViewport = (specimen.longitude >= viewportBounds.west || specimen.longitude <= viewportBounds.east) &&
+                       specimen.latitude >= viewportBounds.south && 
+                       specimen.latitude <= viewportBounds.north;
+        } else {
+          inViewport = specimen.longitude >= viewportBounds.west && 
+                       specimen.longitude <= viewportBounds.east &&
+                       specimen.latitude >= viewportBounds.south && 
+                       specimen.latitude <= viewportBounds.north;
+        }
+        
+        return inViewport;
+      });
+
+      console.log(`🌿 Viewport filtering: ${viewportData.length}/${herbariumData.length} specimens in view`);
+
+      // Apply IUCN filter
+      let filteredData = viewportData;
+      if (iucnFilter !== 'all') {
+        filteredData = viewportData.filter(specimen => {
+          const statuses = herbariumService.getIUCNStatus(specimen.species);
+          if (!statuses) return false;
+
+          if (iucnFilter === 'endangered') {
+            return statuses.some(s => s === 'CR' || s === 'EN' || s === 'VU');
+          } else {
+            return statuses.includes(iucnFilter);
+          }
+        });
+        console.log(`🔴 IUCN filter (${iucnFilter}): ${filteredData.length}/${viewportData.length} specimens`);
+      }
+
+      // Sample data if needed
+      let displayData: HerbariumRecord[];
+      if (filteredData.length > maxPoints) {
+        // Intelligent sampling - distribute evenly across viewport
+        const step = Math.ceil(filteredData.length / maxPoints);
+        displayData = filteredData.filter((_, index) => index % step === 0).slice(0, maxPoints);
+        console.log(`🌿 Sampled herbarium data: ${displayData.length}/${filteredData.length} specimens`);
+      } else {
+        displayData = filteredData;
+      }
+
+      // Create entities for specimens
+      const batchSize = 100;
+      let entitiesAdded = 0;
+
+      for (let i = 0; i < displayData.length; i += batchSize) {
+        const batch = displayData.slice(i, i + batchSize);
+        batch.forEach(specimen => {
+          try {
+            // Skip specimens without valid coordinates
+            if (isNaN(specimen.latitude) || isNaN(specimen.longitude)) {
+              return;
+            }
+
+            // Get IUCN status and determine color
+            const iucnStatuses = herbariumService.getIUCNStatus(specimen.species);
+            let pointColor = Color.GREENYELLOW; // Default green
+            let outlineColor = Color.DARKGREEN;
+            let iucnStatus = null;
+
+            if (iucnStatuses && iucnStatuses.length > 0) {
+              // Use the most severe status
+              const status = iucnStatuses[0];
+              iucnStatus = status;
+              const colorHex = herbariumService.getIUCNColor(status);
+              pointColor = Color.fromCssColorString(colorHex);
+              
+              // Darker outline for endangered species
+              if (status === 'CR' || status === 'EN' || status === 'VU') {
+                outlineColor = Color.BLACK;
+              }
+            }
+
+            entities.add({
+              position: Cartesian3.fromDegrees(specimen.longitude, specimen.latitude),
+              point: {
+                pixelSize: pixelSize,
+                color: pointColor,
+                outlineColor: outlineColor,
+                outlineWidth: iucnStatus ? 2 : 1
+              },
+              properties: {
+                visualizationType: 'herbarium',
+                species: specimen.species,
+                scientificName: specimen.scientificName,
+                family: specimen.family,
+                genus: specimen.genus,
+                locality: specimen.locality,
+                eventDate: specimen.eventDate,
+                year: specimen.year,
+                month: specimen.month,
+                iucnStatus: iucnStatus
+              }
+            });
+            entitiesAdded++;
+          } catch (error) {
+            console.error('❌ Error adding herbarium entity:', error);
+          }
+        });
+      }
+
+      console.log(`🌿 Successfully rendered ${entitiesAdded} herbarium specimens`);
+      } else {
+        console.log('🌿 Skipping herbarium update (throttled)');
+      }
+    } else {
+      console.log(`🚫 HERBARIUM LAYER NOT RENDERED:`, {
+        herbariumLayerActive: activeLayers.herbarium,
+        herbariumLoaded,
+        herbariumDataLength: herbariumData.length,
+        reason: !activeLayers.herbarium ? 'herbarium layer inactive' : !herbariumLoaded ? 'data not loaded' : 'no data'
+      });
+    }
+
+  }, [activeLayers, bloomData, globalBloomData, climateData, herbariumData, herbariumLoaded, lastHerbariumUpdate, iucnFilter, currentTime, viewerRef.current]);
 
   // Debug effect to monitor state changes
   useEffect(() => {
@@ -1503,6 +1777,128 @@ const EarthGlobe: React.FC = () => {
       <ModeToggle layers={activeLayers} onLayerToggle={(layer: keyof LayerState) => {
         setActiveLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
       }} />
+
+      {/* IUCN Filter Panel - only visible when herbarium layer is active */}
+      {activeLayers.herbarium && (
+        <div style={{
+          position: 'absolute',
+          top: '80px',
+          right: '24px',
+          zIndex: 999,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
+          padding: '16px',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          minWidth: '200px'
+        }}>
+          <h4 style={{
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '600',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            🔴 IUCN Status Filter
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => setIucnFilter('all')}
+              style={{
+                background: iucnFilter === 'all' ? 'rgba(76, 222, 128, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: iucnFilter === 'all' ? '1px solid #4ade80' : '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: iucnFilter === 'all' ? '600' : '400',
+                transition: 'all 0.2s'
+              }}
+            >
+              All Specimens
+            </button>
+            <button
+              onClick={() => setIucnFilter('endangered')}
+              style={{
+                background: iucnFilter === 'endangered' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: iucnFilter === 'endangered' ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: iucnFilter === 'endangered' ? '600' : '400',
+                transition: 'all 0.2s'
+              }}
+            >
+              Endangered (CR/EN/VU)
+            </button>
+            <button
+              onClick={() => setIucnFilter('CR')}
+              style={{
+                background: iucnFilter === 'CR' ? 'rgba(255, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: iucnFilter === 'CR' ? '1px solid #FF0000' : '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: iucnFilter === 'CR' ? '600' : '400',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>CR - Critically Endangered</span>
+              <span style={{ fontSize: '11px', opacity: 0.7 }}>🔴</span>
+            </button>
+            <button
+              onClick={() => setIucnFilter('EN')}
+              style={{
+                background: iucnFilter === 'EN' ? 'rgba(255, 102, 0, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: iucnFilter === 'EN' ? '1px solid #FF6600' : '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: iucnFilter === 'EN' ? '600' : '400',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>EN - Endangered</span>
+              <span style={{ fontSize: '11px', opacity: 0.7 }}>🟠</span>
+            </button>
+            <button
+              onClick={() => setIucnFilter('VU')}
+              style={{
+                background: iucnFilter === 'VU' ? 'rgba(255, 204, 0, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                border: iucnFilter === 'VU' ? '1px solid #FFCC00' : '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: iucnFilter === 'VU' ? '600' : '400',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>VU - Vulnerable</span>
+              <span style={{ fontSize: '11px', opacity: 0.7 }}>🟡</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSearch} style={{
         position: 'absolute',

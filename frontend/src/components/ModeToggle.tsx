@@ -4,11 +4,12 @@ import './ModeToggle.css';
 export interface LayerState {
   climate: boolean;
   bloom: boolean;
+  herbarium: boolean;
 }
 
 interface ModeToggleProps {
   layers: LayerState;
-  onLayerToggle: (layer: 'climate' | 'bloom') => void;
+  onLayerToggle: (layer: 'climate' | 'bloom' | 'herbarium') => void;
 }
 
 const ModeToggle: React.FC<ModeToggleProps> = ({ layers, onLayerToggle }) => {
@@ -25,6 +26,12 @@ const ModeToggle: React.FC<ModeToggleProps> = ({ layers, onLayerToggle }) => {
         onClick={() => onLayerToggle('climate')}
       >
         Climate Risk
+      </button>
+      <button
+        className={`mode-button toggle ${layers.herbarium ? 'active' : ''}`}
+        onClick={() => onLayerToggle('herbarium')}
+      >
+        Plant Specimens
       </button>
     </div>
   );

@@ -1,0 +1,241 @@
+{
+  "total_with_iucn": 13974,
+  "status_counts": {
+    "LC": 13075,
+    "DD": 431,
+    "NT": 218,
+    "CR": 81,
+    "EN": 48,
+    "VU": 121
+  },
+  "endangered_species": {
+    "Fraxinus pennsylvanica": [
+      "CR"
+    ],
+    "Trapa natans": [
+      "CR"
+    ],
+    "Juglans cinerea": [
+      "EN"
+    ],
+    "Syringa josikaea": [
+      "EN"
+    ],
+    "Erigeron frigidus": [
+      "EN"
+    ],
+    "Acacia pygmaea": [
+      "EN"
+    ],
+    "Lathyrus odoratus": [
+      "CR"
+    ],
+    "Coffea arabica": [
+      "EN"
+    ],
+    "Isoetes boryana": [
+      "EN"
+    ],
+    "Paphiopedilum insigne": [
+      "EN"
+    ],
+    "Aesculus hippocastanum": [
+      "VU"
+    ],
+    "Cedrus atlantica": [
+      "EN"
+    ],
+    "Picea omorika": [
+      "EN"
+    ],
+    "Eucommia ulmoides": [
+      "VU"
+    ],
+    "Psephellus taochius": [
+      "EN"
+    ],
+    "Eucalyptus haemastoma": [
+      "VU"
+    ],
+    "Ammannia pubescens": [
+      "VU"
+    ],
+    "Oxalis corniculata": [
+      "CR"
+    ],
+    "Epipactis helleborine": [
+      "VU"
+    ],
+    "Malus domestica": [
+      "VU"
+    ],
+    "Eucalyptus melliodora": [
+      "VU"
+    ],
+    "Aralia chinensis": [
+      "VU"
+    ],
+    "Withania somnifera": [
+      "CR"
+    ],
+    "Blechnum occidentale": [
+      "VU"
+    ],
+    "Aldrovanda vesiculosa": [
+      "EN"
+    ],
+    "Anacyclus pyrethrum": [
+      "VU"
+    ],
+    "Podocarpus salignus": [
+      "VU"
+    ],
+    "Nothofagus glauca": [
+      "VU"
+    ],
+    "Pitavia punctata": [
+      "EN"
+    ],
+    "Davidia involucrata": [
+      "VU"
+    ],
+    "Encephalartos horridus": [
+      "EN"
+    ],
+    "Calceolaria grandiflora": [
+      "EN"
+    ],
+    "Abeliophyllum distichum": [
+      "EN"
+    ],
+    "Fraxinus americana": [
+      "CR"
+    ],
+    "Lonicera tatarica": [
+      "CR"
+    ],
+    "Geranium macrorrhizum": [
+      "VU"
+    ],
+    "Ginkgo biloba": [
+      "EN"
+    ],
+    "Artemisia granatensis": [
+      "EN"
+    ],
+    "Plagius flosculosus": [
+      "VU"
+    ],
+    "Nananthea perpusilla": [
+      "VU"
+    ],
+    "Araucaria araucana": [
+      "EN"
+    ],
+    "Acer griseum": [
+      "EN"
+    ],
+    "Sequoia sempervirens": [
+      "EN"
+    ],
+    "Acer pseudosieboldianum": [
+      "VU"
+    ],
+    "Astragalus nigrocalycinus": [
+      "CR"
+    ],
+    "Pelargonium crassicaule": [
+      "VU"
+    ],
+    "Centaurea gadorensis": [
+      "VU"
+    ],
+    "Centaurea janeri": [
+      "EN"
+    ],
+    "Centaurea avilae": [
+      "EN"
+    ],
+    "Tanacetum oxystegium": [
+      "CR"
+    ],
+    "Lotus angustissimus": [
+      "CR"
+    ],
+    "Ephedra gerardiana": [
+      "VU"
+    ],
+    "Gymnocladus dioicus": [
+      "VU"
+    ],
+    "Poa riphaea": [
+      "EN"
+    ],
+    "Asplenium compressum": [
+      "VU"
+    ],
+    "Prunus domestica": [
+      "EN",
+      "DD"
+    ],
+    "Hieracium lucidum": [
+      "CR"
+    ],
+    "Jurinea alata": [
+      "VU"
+    ],
+    "Heptacodium miconioides": [
+      "VU"
+    ],
+    "Macrochloa tenacissima": [
+      "VU"
+    ],
+    "Metasequoia glyptostroboides": [
+      "EN"
+    ],
+    "Hibiscus rosa-sinensis": [
+      "CR"
+    ],
+    "Magnolia stellata": [
+      "EN"
+    ],
+    "Syringa reticulata": [
+      "VU",
+      "LC"
+    ],
+    "Neoluederitzia sericeocarpa": [
+      "EN"
+    ],
+    "Pterocarya fraxinifolia": [
+      "VU"
+    ],
+    "Eucalyptus behriana": [
+      "EN"
+    ],
+    "Gnaphalium demidium": [
+      "VU"
+    ],
+    "Scorzoneroides microcephala": [
+      "VU"
+    ],
+    "Crepis purpurea": [
+      "VU"
+    ],
+    "Picea breweriana": [
+      "VU"
+    ],
+    "Cneorum tricoccon": [
+      "VU"
+    ]
+  },
+  "descriptions": {
+    "CR": "Critically Endangered",
+    "EN": "Endangered",
+    "VU": "Vulnerable",
+    "NT": "Near Threatened",
+    "LC": "Least Concern",
+    "DD": "Data Deficient",
+    "EX": "Extinct",
+    "EW": "Extinct in the Wild"
+  }
+}
