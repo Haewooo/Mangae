@@ -5,22 +5,38 @@ import axios from 'axios';
  * Real-time TLE data fetching from NASA/NORAD official sources
  */
 
-// Fetch real-time TLE data from CelesTrak API
+// Fetch real-time TLE data from alternative API
 export const fetchTLEFromCelesTrak = async (noradId: number): Promise<{ tle1: string; tle2: string } | null> => {
   try {
-    const response = await axios.get(`https://celestrak.org/NORAD/elements/gp.php?CATNR=${noradId}&FORMAT=TLE`);
-    const lines = response.data.trim().split('\n');
+    // Try alternative TLE API first
+    const response = await axios.get(`https://tle.ivanstanojevic.me/api/tle/${noradId}`);
 
-    // CelesTrak returns 3-line format: name, TLE line 1, TLE line 2
-    if (lines.length >= 3) {
+    if (response.data && response.data.line1 && response.data.line2) {
+      console.log(`✅ TLE data fetched for ${response.data.name} (${noradId})`);
       return {
-        tle1: lines[1].trim(), // TLE Line 1
-        tle2: lines[2].trim()  // TLE Line 2
+        tle1: response.data.line1,
+        tle2: response.data.line2
       };
     }
     return null;
   } catch (error) {
     console.error(`Failed to fetch TLE for NORAD ${noradId}:`, error);
+
+    // Fallback to original CelesTrak if alternative fails
+    try {
+      const fallbackResponse = await axios.get(`https://celestrak.org/NORAD/elements/gp.php?CATNR=${noradId}&FORMAT=TLE`);
+      const lines = fallbackResponse.data.trim().split('\n');
+
+      if (lines.length >= 3) {
+        return {
+          tle1: lines[1].trim(),
+          tle2: lines[2].trim()
+        };
+      }
+    } catch (fallbackError) {
+      console.error(`Fallback TLE fetch also failed for NORAD ${noradId}:`, fallbackError);
+    }
+
     return null;
   }
 };
