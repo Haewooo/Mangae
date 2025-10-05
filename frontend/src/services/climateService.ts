@@ -1,7 +1,5 @@
-/**
- * NASA Space Apps Challenge 2024 - Climate & Bloom Data Service
- * Provides climate risk assessment and bloom/phenology visualization data
- */
+// NASA Space Apps Challenge 2024 - Climate & Bloom Data Service
+// Provides climate risk assessment and bloom/phenology visualization data
 
 export interface ClimateRiskData {
   latitude: number;
@@ -21,10 +19,8 @@ export interface BloomData {
   confidence: number; // 0-1
 }
 
-/**
- * Generate mock climate risk data for visualization
- * In production, this would fetch from NASA APIs (MODIS, Landsat)
- */
+// Generate mock climate risk data for visualization
+// In production, this would fetch from NASA APIs (MODIS, Landsat)
 export const getClimateRiskData = (lat: number, lng: number): ClimateRiskData => {
   // Mock algorithm based on latitude (higher latitudes = lower risk in this simplified model)
   const absLat = Math.abs(lat);

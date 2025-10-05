@@ -203,35 +203,6 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ location, allBloomDat
       });
     }
 
-    if (selectedMetric === 'all') {
-      datasets.push({
-        label: `Current Precipitation: ${currentData.precipitation.toFixed(1)}mm`,
-        data: Array(timeSeriesData.length).fill(currentData.precipitation),
-        borderColor: '#3B82F6',
-        backgroundColor: 'transparent',
-        fill: false,
-        yAxisID: 'y-precip',
-        tension: 0,
-        pointRadius: 0,
-        pointHoverRadius: 0,
-        borderWidth: 2,
-        borderDash: [5, 5]
-      });
-
-      datasets.push({
-        label: `Current Humidity (VPD): ${currentData.vpd.toFixed(1)}kPa`,
-        data: Array(timeSeriesData.length).fill(currentData.vpd),
-        borderColor: '#8B5CF6',
-        backgroundColor: 'transparent',
-        fill: false,
-        yAxisID: 'y-vpd',
-        tension: 0,
-        pointRadius: 0,
-        pointHoverRadius: 0,
-        borderWidth: 2,
-        borderDash: [5, 5]
-      });
-    }
 
     return {
       labels,
@@ -253,6 +224,7 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ location, allBloomDat
     plugins: {
       legend: {
         position: 'top' as const,
+        align: 'start' as const,
         labels: {
           usePointStyle: true,
           pointStyle: 'circle',
@@ -261,7 +233,7 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ location, allBloomDat
             weight: 'bold' as const
           },
           color: '#E5E7EB',
-          padding: 20
+          padding: 15
         }
       },
       title: {
@@ -356,10 +328,10 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ location, allBloomDat
         position: selectedMetric === 'all' ? 'right' as const : 'left' as const,
         title: {
           display: true,
-          text: 'Temperature (°C)',
+          text: 'Temp (°C)',
           color: '#F59E0B',
           font: {
-            size: 12,
+            size: 10,
             weight: 'normal' as const
           }
         },
@@ -378,7 +350,7 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ location, allBloomDat
         position: 'right' as const,
         title: {
           display: true,
-          text: 'Current Precipitation (mm)',
+          text: 'Precipitation (mm)',
           color: '#3B82F6',
           font: {
             size: 10,
@@ -391,30 +363,24 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ location, allBloomDat
           lineWidth: 0.5
         },
         ticks: {
-          color: '#3B82F6'
+          color: '#3B82F6',
+          padding: 5
         },
-        min: 0
+        min: 0,
+        offset: true
       },
       'y-vpd': {
         type: 'linear' as const,
-        display: selectedMetric === 'all',
+        display: false, // Hide VPD axis to prevent overlap
         position: 'right' as const,
         title: {
-          display: true,
-          text: 'Current Humidity (VPD kPa)',
-          color: '#8B5CF6',
-          font: {
-            size: 10,
-            weight: 'normal' as const
-          }
+          display: false
         },
         grid: {
-          display: false,
-          color: 'rgba(139, 92, 246, 0.1)',
-          lineWidth: 0.5
+          display: false
         },
         ticks: {
-          color: '#8B5CF6'
+          display: false
         },
         min: 0
       }

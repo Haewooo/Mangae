@@ -1,6 +1,6 @@
 /**
- * Scalable Bloom Data Index Service
- * Industrial-grade solution for handling millions of data points
+ * Bloom Data Index Service
+ * For handling large datasets
  */
 
 import { BloomDataPoint } from '../types';
@@ -16,7 +16,6 @@ export class BloomDataIndex {
 
   // Build spatial index
   buildSpatialIndex(data: BloomDataPoint[]): void {
-    console.log(`🏗️ Building spatial index for ${data.length} points...`);
     const startTime = performance.now();
 
     this.gridIndex.clear();
@@ -31,13 +30,10 @@ export class BloomDataIndex {
     }
 
     const endTime = performance.now();
-    console.log(`✅ Spatial index built in ${Math.round(endTime - startTime)}ms`);
-    console.log(`📊 Grid cells created: ${this.gridIndex.size}`);
   }
 
   // Build temporal index
   buildTemporalIndex(data: BloomDataPoint[]): void {
-    console.log(`🏗️ Building temporal index...`);
     const startTime = performance.now();
 
     this.timeIndex.clear();
@@ -52,8 +48,6 @@ export class BloomDataIndex {
     }
 
     const endTime = performance.now();
-    console.log(`✅ Temporal index built in ${Math.round(endTime - startTime)}ms`);
-    console.log(`📊 Time periods indexed: ${this.timeIndex.size}`);
   }
 
   // Get grid key for a coordinate
@@ -87,7 +81,6 @@ export class BloomDataIndex {
     const timeData = this.timeIndex.get(timeKey) || [];
 
     if (timeData.length === 0) {
-      console.log(`⚠️ No data for ${timeKey}`);
       return [];
     }
 
@@ -132,8 +125,6 @@ export class BloomDataIndex {
     }
 
     const endTime = performance.now();
-    console.log(`✅ Query completed in ${Math.round(endTime - startTime)}ms`);
-    console.log(`📊 Results: ${results.length} points (max: ${maxPoints})`);
 
     // Cache results
     this.dataCache.set(cacheKey, {
@@ -144,13 +135,12 @@ export class BloomDataIndex {
     return results;
   }
 
-  // Smart sampling for visualization
-  smartSample(data: BloomDataPoint[], maxPoints: number): BloomDataPoint[] {
+  // Sampling for visualization
+  sampleData(data: BloomDataPoint[], maxPoints: number): BloomDataPoint[] {
     if (data.length <= maxPoints) {
       return data;
     }
 
-    console.log(`🎯 Smart sampling ${data.length} points down to ${maxPoints}`);
 
     // Priority-based sampling
     const sortedData = [...data].sort((a, b) => {
@@ -163,7 +153,6 @@ export class BloomDataIndex {
     // Take top priority points
     const sampled = sortedData.slice(0, maxPoints);
 
-    console.log(`✅ Sampled to ${sampled.length} points`);
     return sampled;
   }
 
@@ -234,17 +223,16 @@ export class BloomDataIndex {
 export const bloomDataIndex = new BloomDataIndex();
 
 /**
- * Progressive loading strategy for large datasets
+ * Loading strategy for large datasets
  */
-export class ProgressiveDataLoader {
+export class DataLoader {
   private chunkSize: number = 50000;
   private worker: Worker | null = null;
 
-  async loadDataProgressive(
+  async loadData(
     url: string,
     onProgress: (loaded: number, total: number) => void
   ): Promise<BloomDataPoint[]> {
-    console.log('🚀 Starting progressive data load...');
 
     const response = await fetch(url);
     const reader = response.body?.getReader();
@@ -287,13 +275,11 @@ export class ProgressiveDataLoader {
 
           if (lineCount % 10000 === 0) {
             onProgress(lineCount, 157000); // Approximate total
-            console.log(`📊 Loaded ${lineCount} rows...`);
           }
         }
       }
     }
 
-    console.log(`✅ Progressive load complete: ${lineCount} rows`);
     return data;
   }
 }

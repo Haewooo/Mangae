@@ -25,7 +25,6 @@ export const initializeEarthEngine = async (): Promise<void> => {
         null, // Use default API endpoint
         null, // Use default tile provider
         () => {
-          console.log('✅ Google Earth Engine API initialized');
           resolve();
         },
         (error: any) => {
@@ -163,7 +162,6 @@ export const authenticateEarthEngine = async (): Promise<void> => {
       // Client ID from Google Cloud Console
       process.env.REACT_APP_GEE_CLIENT_ID,
       () => {
-        console.log('✅ Authenticated with Earth Engine');
         resolve();
       },
       (error: any) => {

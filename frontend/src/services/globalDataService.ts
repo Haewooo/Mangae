@@ -109,20 +109,20 @@ export class GlobalDataService {
       return data;
     }
 
-    // Smart sampling - prioritize bloom events
+    // Sampling - prioritize bloom events
     const bloomPoints = data.filter(p => p.label > 0);
     const normalPoints = data.filter(p => p.label === 0);
 
-    const sampledBloom = this.smartSample(bloomPoints, Math.floor(bloomPoints.length * sampleRate * 2));
-    const sampledNormal = this.smartSample(normalPoints, Math.floor(normalPoints.length * sampleRate));
+    const sampledBloom = this.sampleData(bloomPoints, Math.floor(bloomPoints.length * sampleRate * 2));
+    const sampledNormal = this.sampleData(normalPoints, Math.floor(normalPoints.length * sampleRate));
 
     return [...sampledBloom, ...sampledNormal];
   }
 
   /**
-   * Smart sampling algorithm
+   * Sampling algorithm
    */
-  private smartSample(data: BloomDataPoint[], targetCount: number): BloomDataPoint[] {
+  private sampleData(data: BloomDataPoint[], targetCount: number): BloomDataPoint[] {
     if (data.length <= targetCount) {
       return data;
     }
@@ -223,7 +223,6 @@ export class GlobalDataService {
       const chunk = this.regionChunks.get(firstKey)!;
       this.currentMemoryMB -= this.estimateMemoryMB(chunk.data);
       this.regionChunks.delete(firstKey);
-      console.log(`🗑️ Evicted region: ${firstKey}`);
     }
   }
 

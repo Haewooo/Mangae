@@ -70,7 +70,6 @@ export class AmericasDataService {
       results.push(...southData);
     }
 
-    console.log(`✅ Loaded ${results.length} total points for Americas`);
     return results;
   }
 
@@ -165,7 +164,6 @@ export class AmericasDataService {
         this.dataInfo.southAmerica.totalPoints += data.length;
       }
 
-      console.log(`✅ Loaded ${data.length} points from ${fileName}`);
     } catch (error) {
       console.error(`❌ Failed to load ${fileName}:`, error);
       // Set empty cache to prevent repeated attempts
@@ -240,7 +238,6 @@ export class AmericasDataService {
    * Preload all Americas data
    */
   async preloadAllData(): Promise<void> {
-    console.log('🚀 Preloading all Americas data...');
 
     const allFiles = [
       ...this.dataInfo.northAmerica.files,
@@ -254,7 +251,6 @@ export class AmericasDataService {
 
     await Promise.all(loadPromises);
 
-    console.log(`✅ Preloaded all Americas data:`);
     console.log(`  North America: ${this.dataInfo.northAmerica.totalPoints} points`);
     console.log(`  South America: ${this.dataInfo.southAmerica.totalPoints} points`);
   }
@@ -312,7 +308,6 @@ export class AmericasDataService {
     this.loadingStatus.clear();
     this.dataInfo.northAmerica.totalPoints = 0;
     this.dataInfo.southAmerica.totalPoints = 0;
-    console.log('🗑️ Americas data cache cleared');
   }
 }
 

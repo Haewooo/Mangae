@@ -12,7 +12,6 @@ export const fetchTLEFromCelesTrak = async (noradId: number): Promise<{ tle1: st
     const response = await axios.get(`https://tle.ivanstanojevic.me/api/tle/${noradId}`);
 
     if (response.data && response.data.line1 && response.data.line2) {
-      console.log(`✅ TLE data fetched for ${response.data.name} (${noradId})`);
       return {
         tle1: response.data.line1,
         tle2: response.data.line2

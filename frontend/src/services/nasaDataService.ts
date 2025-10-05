@@ -1,13 +1,12 @@
-/**
- * NASA Data Service
- * Fetches real climate and vegetation data from NASA APIs
- */
+// NASA Data Service
+// Fetches real climate and vegetation data from NASA APIs
 
 // NASA POWER API for climate data (temperature, precipitation)
 const NASA_POWER_API = 'https://power.larc.nasa.gov/api/temporal/daily/point';
 
-// NASA MODIS NDVI data (vegetation index)
-const NASA_MODIS_API = 'https://modis.ornl.gov/rst/api/v1';
+// NASA MODIS NDVI data (vegetation index) - for future use
+// const NASA_MODIS_API = 'https://modis.ornl.gov/rst/api/v1';
+
 
 export interface ClimateData {
   latitude: number;
@@ -27,21 +26,17 @@ export interface NDVIData {
   timestamp: Date;
 }
 
-/**
- * Fetch real-time climate data from NASA POWER API
- */
+// Fetch real-time climate data from NASA POWER API
 export async function fetchClimateData(
   latitude: number,
   longitude: number
 ): Promise<ClimateData> {
   try {
-    // Get today's date
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Get yesterday's date from 2024 (NASA POWER API doesn't have future data)
+    const date = new Date('2024-10-04'); // Use a known good date from 2024
 
-    const startDate = formatDate(yesterday);
-    const endDate = formatDate(yesterday);
+    const startDate = formatDate(date);
+    const endDate = formatDate(date);
 
     // NASA POWER API parameters
     const params = new URLSearchParams({
@@ -54,7 +49,10 @@ export async function fetchClimateData(
       format: 'JSON'
     });
 
-    const response = await fetch(`${NASA_POWER_API}?${params}`);
+    const apiUrl = `${NASA_POWER_API}?${params}`;
+    console.log('NASA API Request URL:', apiUrl);
+
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
       throw new Error(`NASA POWER API error: ${response.status}`);
@@ -67,34 +65,40 @@ export async function fetchClimateData(
     const dates = Object.keys(parameters.T2M);
     const latestDate = dates[dates.length - 1];
 
+    // Check for NASA -999 error values and provide reasonable fallbacks
+    const temp = parameters.T2M[latestDate];
+    const precip = parameters.PRECTOTCORR[latestDate];
+    const humid = parameters.RH2M[latestDate];
+    const solar = parameters.ALLSKY_SFC_SW_DWN[latestDate];
+
+    // Debug log to see what NASA is actually returning
+    console.log('NASA API Response for', latitude, longitude, ':', {
+      temp, precip, humid, solar,
+      latestDate,
+      allDates: dates
+    });
+
+    // Check if NASA returned -999 (missing data) for any parameter
+    if (temp === -999 || precip === -999 || humid === -999 || solar === -999) {
+      throw new Error(`NASA POWER API returned missing data (-999) for location ${latitude}, ${longitude} on ${latestDate}`);
+    }
+
     return {
       latitude,
       longitude,
-      temperature: parameters.T2M[latestDate] || 15, // Default fallback
-      precipitation: parameters.PRECTOTCORR[latestDate] || 0,
-      humidity: parameters.RH2M[latestDate] || 50,
-      solarRadiation: parameters.ALLSKY_SFC_SW_DWN[latestDate] || 20,
+      temperature: temp,
+      precipitation: precip,
+      humidity: humid,
+      solarRadiation: solar,
       timestamp: new Date(latestDate)
     };
   } catch (error) {
     console.error('Failed to fetch NASA POWER data:', error);
-
-    // Return fallback mock data on error
-    return {
-      latitude,
-      longitude,
-      temperature: 15 + Math.random() * 20,
-      precipitation: Math.random() * 10,
-      humidity: 40 + Math.random() * 40,
-      solarRadiation: 15 + Math.random() * 10,
-      timestamp: new Date()
-    };
+    throw error; // Re-throw the error instead of using mock data
   }
 }
 
-/**
- * Fetch NDVI data from NASA MODIS (using mock data for now - MODIS API requires authentication)
- */
+// Fetch NDVI data from NASA MODIS (using mock data for now - MODIS API requires authentication)
 export async function fetchNDVIData(
   latitude: number,
   longitude: number
@@ -139,9 +143,7 @@ export async function fetchNDVIData(
   }
 }
 
-/**
- * Fetch combined climate and vegetation data
- */
+// Fetch combined climate and vegetation data
 export async function fetchLocationData(latitude: number, longitude: number) {
   const [climate, ndvi] = await Promise.all([
     fetchClimateData(latitude, longitude),
@@ -156,9 +158,7 @@ export async function fetchLocationData(latitude: number, longitude: number) {
   };
 }
 
-/**
- * Calculate climate risk level based on real data
- */
+// Calculate climate risk level based on real data
 function calculateClimateRisk(climate: ClimateData, ndvi: NDVIData): 'low' | 'moderate' | 'high' | 'extreme' {
   let riskScore = 0;
 
@@ -183,9 +183,7 @@ function calculateClimateRisk(climate: ClimateData, ndvi: NDVIData): 'low' | 'mo
   return 'low';
 }
 
-/**
- * Calculate bloom status based on NDVI
- */
+// Calculate bloom status based on NDVI
 function calculateBloomStatus(ndvi: NDVIData): 'dormant' | 'emerging' | 'peak-bloom' | 'declining' {
   if (ndvi.ndvi > 0.6) return 'peak-bloom';
   if (ndvi.ndvi > 0.4) return 'emerging';
@@ -193,9 +191,7 @@ function calculateBloomStatus(ndvi: NDVIData): 'dormant' | 'emerging' | 'peak-bl
   return 'dormant';
 }
 
-/**
- * Format date for NASA POWER API (YYYYMMDD)
- */
+// Format date for NASA POWER API (YYYYMMDD)
 function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');

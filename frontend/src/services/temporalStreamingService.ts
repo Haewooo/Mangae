@@ -42,7 +42,6 @@ export class TemporalStreamingService {
    */
   private initializeWorkers(): void {
     const workerCount = navigator.hardwareConcurrency || 4;
-    console.log(`🚀 Initializing ${workerCount} workers for parallel processing`);
 
     // In real implementation, create actual worker files
     // For now, showing the concept
@@ -169,8 +168,8 @@ export class TemporalStreamingService {
       const tileData = await this.loadTileData(tile, frameIndex);
 
       if (tileData) {
-        // Apply smart sampling if needed
-        const sampled = this.smartSample(tileData, maxPointsPerFrame / tiles.length);
+        // Apply sampling if needed
+        const sampled = this.sampleData(tileData, maxPointsPerFrame / tiles.length);
         aggregatedPoints.push(...sampled);
       }
     }
@@ -203,14 +202,14 @@ export class TemporalStreamingService {
   }
 
   /**
-   * Smart sampling algorithm for data reduction
+   * Sampling algorithm for data reduction
    */
-  private smartSample(data: number[], maxPoints: number): number[] {
+  private sampleData(data: number[], maxPoints: number): number[] {
     if (data.length <= maxPoints * 3) { // 3 values per point
       return data;
     }
 
-    // Implement importance-based sampling
+    // Implement sampling
     // Priority: bloom events > high NDVI > regular points
     const pointCount = data.length / 3;
     const sampleRate = maxPoints / pointCount;
@@ -343,7 +342,7 @@ export class GPUPointRenderer {
   }
 
   /**
-   * Render points efficiently on GPU
+   * Render points on GPU
    */
   renderPoints(points: Float32Array, mvpMatrix: Float32Array): void {
     const gl = this.gl;
@@ -359,11 +358,11 @@ export class GPUPointRenderer {
 }
 
 /**
- * Production Architecture Recommendations:
+ * Architecture notes:
  *
  * 1. **Data Format**: Use Apache Parquet or ORC for columnar storage
  *    - 5-10x compression
- *    - Efficient time-range queries
+ *    - Time-range queries
  *
  * 2. **Backend**:
  *    - TimescaleDB for time-series data

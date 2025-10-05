@@ -4,7 +4,6 @@ import { getClimateRiskData, getBloomData, predictNDVI, getNDVICategory } from '
 import { fetchLocationData } from '../services/nasaDataService';
 import { LayerState } from './ModeToggle';
 import { BloomDataPoint } from '../types';
-import { bloomDataIndex, ProgressiveDataLoader } from '../services/bloomDataIndexService';
 import HistoricalChart from './HistoricalChart';
 
 // Helper function for bloom status names
@@ -21,88 +20,92 @@ const getBloomStatusName = (label: number): string => {
 // Parse bloom CSV data from public folder with indexing
 const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
   try {
-    console.log('📄 DataPanel: Loading bloom CSV...');
-    const response = await fetch('/us_east_features_labels_2015_2024.csv');
-    const text = await response.text();
-    const lines = text.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',');
+    console.log('📄 DataPanel: Loading Americas bloom CSV data...');
 
-    // Find column indices
-    const indices = {
-      lat: headers.indexOf('lat'),
-      lon: headers.indexOf('lon'),
-      tmean: headers.indexOf('tmean'),
-      pr: headers.indexOf('pr'),
-      NDVI: headers.indexOf('NDVI'),
-      label: headers.indexOf('label'),
-      month: headers.indexOf('month'),
-      year: headers.indexOf('year'),
-      srad: headers.indexOf('srad'),
-      soil: headers.indexOf('soil'),
-      vpd: headers.indexOf('vpd'),
-      dtr: headers.indexOf('dtr'),
-      AGDD: headers.indexOf('AGDD')
-    };
+    // Load all Americas data files (all years)
+    const files = [
+      '/GEE_Exports_Americas/NorthAmerica_features_labels_2015_2016.csv',
+      '/GEE_Exports_Americas/NorthAmerica_features_labels_2017_2018.csv',
+      '/GEE_Exports_Americas/NorthAmerica_features_labels_2019_2020.csv',
+      '/GEE_Exports_Americas/NorthAmerica_features_labels_2021_2022.csv',
+      '/GEE_Exports_Americas/NorthAmerica_features_labels_2023_2024.csv',
+      '/GEE_Exports_Americas/SouthAmerica_features_labels_2015_2016.csv',
+      '/GEE_Exports_Americas/SouthAmerica_features_labels_2017_2018.csv',
+      '/GEE_Exports_Americas/SouthAmerica_features_labels_2019_2020.csv',
+      '/GEE_Exports_Americas/SouthAmerica_features_labels_2021_2022.csv',
+      '/GEE_Exports_Americas/SouthAmerica_features_labels_2023_2024.csv'
+    ];
 
-    const data: BloomDataPoint[] = [];
+    let allData: BloomDataPoint[] = [];
 
-    // Process ALL rows without limit
-    const maxRows = lines.length; // Load ALL data
-    console.log(`📊 Processing ${maxRows - 1} data rows (no limit)...`);
-    console.log(`⚡ Warning: Loading ${maxRows} rows may take time...`);
+    for (const filePath of files) {
+      console.log(`📄 Loading: ${filePath}`);
+      const response = await fetch(filePath);
+      const text = await response.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',');
 
-    for (let i = 1; i < maxRows; i++) {
-      // Log progress every 10000 rows
-      if (i % 10000 === 0) {
-        console.log(`📊 Progress: ${i}/${maxRows} rows processed (${Math.round(i/maxRows*100)}%)`);
-      }
-      const values = lines[i].split(',');
-      if (values.length === headers.length) {
-        const point: BloomDataPoint = {
-          lat: parseFloat(values[indices.lat]),
-          lon: parseFloat(values[indices.lon]),
-          tmean: parseFloat(values[indices.tmean]),
-          pr: parseFloat(values[indices.pr]),
-          NDVI: parseFloat(values[indices.NDVI]),
-          label: parseInt(values[indices.label]),
-          month: parseInt(values[indices.month]),
-          year: parseInt(values[indices.year]),
-          srad: parseFloat(values[indices.srad]),
-          soil: parseFloat(values[indices.soil]),
-          vpd: parseFloat(values[indices.vpd]),
-          dtr: parseFloat(values[indices.dtr]),
-          AGDD: parseFloat(values[indices.AGDD])
-        };
+      // Find column indices - use GDDm instead of AGDD for Americas data
+      const indices = {
+        lat: headers.indexOf('lat'),
+        lon: headers.indexOf('lon'),
+        tmean: headers.indexOf('tmean'),
+        pr: headers.indexOf('pr'),
+        NDVI: headers.indexOf('NDVI'),
+        label: headers.indexOf('label'),
+        month: headers.indexOf('month'),
+        year: headers.indexOf('year'),
+        srad: headers.indexOf('srad'),
+        soil: headers.indexOf('soil'),
+        vpd: headers.indexOf('vpd'),
+        dtr: headers.indexOf('dtr'),
+        AGDD: headers.indexOf('GDDm') // Americas data uses GDDm
+      };
 
-        // Only add valid data points
-        if (!isNaN(point.lat) && !isNaN(point.lon)) {
-          data.push(point);
+      // Process rows for this file
+      const maxRows = lines.length;
+
+      for (let i = 1; i < maxRows; i++) {
+        const values = lines[i].split(',');
+        if (values.length === headers.length) {
+          const point: BloomDataPoint = {
+            lat: parseFloat(values[indices.lat]),
+            lon: parseFloat(values[indices.lon]),
+            tmean: parseFloat(values[indices.tmean]),
+            pr: parseFloat(values[indices.pr]),
+            NDVI: parseFloat(values[indices.NDVI]),
+            label: parseInt(values[indices.label]),
+            month: parseInt(values[indices.month]),
+            year: parseInt(values[indices.year]),
+            srad: parseFloat(values[indices.srad]),
+            soil: parseFloat(values[indices.soil]),
+            vpd: parseFloat(values[indices.vpd]),
+            dtr: parseFloat(values[indices.dtr]),
+            AGDD: parseFloat(values[indices.AGDD]) || 0
+          };
+
+          // Only add valid data points
+          if (!isNaN(point.lat) && !isNaN(point.lon)) {
+            allData.push(point);
+          }
         }
       }
     }
 
-    console.log(`✅ DataPanel: Loaded ${data.length} bloom data points`);
 
-    // Build indices for fast querying
-    bloomDataIndex.buildSpatialIndex(data);
-    bloomDataIndex.buildTemporalIndex(data);
-
-    const stats = bloomDataIndex.getStatistics();
-    console.log('📊 Index statistics:', stats);
+    // Data loaded successfully
 
     // Log data distribution
-    const years = Array.from(new Set(data.map(p => p.year))).sort();
-    const months = Array.from(new Set(data.map(p => p.month))).sort();
+    const years = Array.from(new Set(allData.map(p => p.year))).sort();
+    const months = Array.from(new Set(allData.map(p => p.month))).sort();
     console.log(`📅 Years available: ${years.join(', ')}`);
     console.log(`📅 Months available: ${months.join(', ')}`);
 
     // Check for specific time periods
-    const data2024_4 = data.filter(p => p.year === 2024 && p.month === 4);
-    const data2020_4 = data.filter(p => p.year === 2020 && p.month === 4);
-    console.log(`🎯 2024-04 data points: ${data2024_4.length}`);
-    console.log(`🎯 2020-04 data points: ${data2020_4.length}`);
+    const data2022_4 = allData.filter(p => p.year === 2022 && p.month === 4);
+    const data2021_4 = allData.filter(p => p.year === 2021 && p.month === 4);
 
-    return data;
+    return allData;
   } catch (error) {
     console.error('❌ DataPanel: Failed to load bloom CSV:', error);
     return [];
@@ -143,10 +146,6 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
 
   if (!location) return null;
 
-  // Use real NASA data if available, otherwise fallback to mock data
-  const climateData = realData?.climate || getClimateRiskData(location.lat, location.lng);
-  const bloomData = realData?.ndvi || getBloomData(location.lat, location.lng);
-
   return (
     <div className="data-panel">
       {/* Header */}
@@ -174,24 +173,33 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
       {activeLayers.climate && (
         <div className="data-section">
           <h3>Climate Risk Assessment {loading && '(Loading...)'}</h3>
-          <div className="climate-data">
-            <div className={`risk-indicator ${realData?.riskLevel || climateData.riskLevel}`}>
-              <span className="dot"></span>
-              <span>{(realData?.riskLevel || climateData.riskLevel).toUpperCase()} RISK</span>
+          {realData ? (
+            <div className="climate-data">
+              <div className={`risk-indicator ${realData.riskLevel}`}>
+                <span className="dot"></span>
+                <span>{realData.riskLevel.toUpperCase()} RISK</span>
+              </div>
+              <div className="data-grid">
+                <div className="data-item">
+                  <strong>Temperature:</strong> {realData.climate.temperature.toFixed(1)}°C
+                </div>
+                <div className="data-item">
+                  <strong>Precipitation:</strong> {realData.climate.precipitation.toFixed(1)} mm/day
+                </div>
+                <div className="data-item">
+                  <strong>Humidity:</strong> {realData.climate.humidity.toFixed(0)}%
+                </div>
+                <div className="data-item">
+                  <strong>Solar Radiation:</strong> {realData.climate.solarRadiation.toFixed(1)} MJ/m²/day
+                </div>
+              </div>
+              <p className="note" style={{color: '#4ade80'}}>✓ NASA POWER API data</p>
             </div>
-            <div className="data-grid">
-              <div className="data-item">
-                <strong>Temperature:</strong> {(realData?.climate?.temperature || climateData.temperature).toFixed(1)}°C
-              </div>
-              <div className="data-item">
-                <strong>Precipitation:</strong> {(realData?.climate?.precipitation || climateData.precipitation).toFixed(1)} mm/day
-              </div>
-              <div className="data-item">
-                <strong>Humidity:</strong> {(realData?.climate?.humidity || 50).toFixed(0)}%
-              </div>
+          ) : (
+            <div className="climate-data">
+              <p style={{color: '#ef4444'}}>❌ Failed to load NASA POWER API data</p>
             </div>
-            {realData && <p className="note" style={{color: '#4ade80'}}>✓ NASA POWER API data</p>}
-          </div>
+          )}
         </div>
       )}
 
@@ -238,7 +246,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
                 </div>
               </div>
               <p className="note" style={{fontSize: '12px', marginTop: '10px'}}>
-                Data loaded from: us_east_features_labels_2015_2024.csv
+                Data loaded from: Americas features_labels 2015-2024
               </p>
             </div>
           );
@@ -249,23 +257,64 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
           p.year === currentYear && p.month === currentMonth
         );
 
-        if (timeFilteredData.length === 0) {
+        // Check if there's any CSV data within 5 degrees
+        const nearbyCSVData = timeFilteredData.filter(p => {
+          const dLat = Math.abs(p.lat - location.lat);
+          const dLon = Math.abs(p.lon - location.lng);
+          return dLat <= 5 && dLon <= 5;
+        });
+
+        // If no CSV data within 5 degrees, use NASA POWER API fallback
+        if (nearbyCSVData.length === 0) {
+          if (!realData) {
+            return (
+              <div className="data-section">
+                <h3>Bloom & Phenology Status</h3>
+                <p style={{color: '#ef4444'}}>❌ No CSV data within 5° and NASA API failed</p>
+              </div>
+            );
+          }
+
+          const bloomStatusFromNDVI = realData.ndvi.ndvi > 0.6 ? 'peak-bloom' : realData.ndvi.ndvi > 0.4 ? 'emerging' : 'dormant';
+
           return (
             <div className="data-section">
-              <h3>Bloom & Phenology Status</h3>
-              <p className="note">No bloom data available for {currentYear}-{String(currentMonth).padStart(2, '0')}.</p>
-              <p className="note" style={{fontSize: '12px', marginTop: '5px'}}>
-                Available data: 2015-2024 (US East Coast)
-              </p>
+              <h3>Bloom & Phenology Status (NASA POWER API)</h3>
+              <div className="bloom-status">
+                <div className={`status-indicator ${bloomStatusFromNDVI}`}>
+                  <span className="dot"></span>
+                  <span>{bloomStatusFromNDVI.toUpperCase().replace('-', ' ')}</span>
+                </div>
+                <div className="data-grid">
+                  <div className="data-item">
+                    <strong>NDVI:</strong> {realData.ndvi.ndvi.toFixed(3)}
+                  </div>
+                  <div className="data-item">
+                    <strong>Temperature:</strong> {realData.climate.temperature.toFixed(1)}°C
+                  </div>
+                  <div className="data-item">
+                    <strong>Precipitation:</strong> {realData.climate.precipitation.toFixed(1)} mm/day
+                  </div>
+                  <div className="data-item">
+                    <strong>Humidity:</strong> {realData.climate.humidity.toFixed(0)}%
+                  </div>
+                  <div className="data-item">
+                    <strong>Solar Radiation:</strong> {realData.climate.solarRadiation.toFixed(1)} MJ/m²/day
+                  </div>
+                </div>
+                <p className="note" style={{color: '#4ade80'}}>
+                  ✓ NASA POWER API data - No Americas CSV data within 5° (~555km) or out of date range (2015-2024)
+                </p>
+              </div>
             </div>
           );
         }
 
-        // Find nearest point from time-filtered data
+        // Find nearest point from nearby CSV data
         let nearestPoint: BloomDataPoint | null = null;
         let minDistance = Infinity;
 
-        for (const point of timeFilteredData) {
+        for (const point of nearbyCSVData) {
           const dLat = point.lat - location.lat;
           const dLon = point.lon - location.lng;
           const distance = Math.sqrt(dLat * dLat + dLon * dLon);
@@ -280,7 +329,10 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
           return (
             <div className="data-section">
               <h3>Bloom & Phenology Status</h3>
-              <p className="note">No nearby bloom data available for this location.</p>
+              <p className="note">No bloom data available for {currentYear}-{String(currentMonth).padStart(2, '0')}.</p>
+              <p className="note" style={{fontSize: '12px', marginTop: '5px'}}>
+                Available data: 2015-2024 (Americas)
+              </p>
             </div>
           );
         }
@@ -289,7 +341,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
 
         return (
           <div className="data-section">
-            <h3>Bloom & Phenology Status (Data {nearestPoint.year} {String(nearestPoint.month).padStart(2, '0')})</h3>
+            <h3>Bloom & Phenology Status (CSV Data {nearestPoint.year}-{String(nearestPoint.month).padStart(2, '0')})</h3>
             <div className="bloom-status">
               <div className={`status-indicator ${bloomStatusName.toLowerCase().replace(' ', '-')}`}>
                 <span className="dot"></span>
@@ -325,7 +377,7 @@ const DataPanel: React.FC<DataPanelProps> = ({ location, activeLayers, currentTi
                 </div>
               </div>
               <p className="note" style={{color: '#4ade80'}}>
-                ✓ US East Coast data - Distance: {minDistance.toFixed(2)}°
+                ✓ Americas CSV data - Distance: {(minDistance * 111).toFixed(0)}km ({minDistance.toFixed(2)}°)
               </p>
             </div>
           </div>

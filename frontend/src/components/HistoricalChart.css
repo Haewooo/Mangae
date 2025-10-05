@@ -1,4 +1,4 @@
-/* Historical Chart Styles - NASA Professional Grade */
+/* Historical Chart Styles */
 
 .chart-container {
   background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%);
@@ -163,7 +163,7 @@
   }
 }
 
-/* Professional Grid Pattern */
+/* Grid Pattern */
 .chart-container::after {
   content: '';
   position: absolute;

@@ -23,9 +23,8 @@ interface HistoricalClimateData {
   month: number;
 }
 
-// Parse bloom CSV data from public folder - Enhanced with comprehensive debugging
+// Parse bloom CSV data from public folder
 const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
-  console.log('🌸 Starting bloom CSV parsing...');
 
   try {
     // Check if we're in the correct environment
@@ -61,7 +60,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
     }
 
     const contentLength = response.headers.get('content-length');
-    console.log(`📊 Content length: ${contentLength ? `${Math.round(parseInt(contentLength) / 1024 / 1024 * 100) / 100}MB` : 'unknown'}`);
 
     console.log('📄 Reading response text...');
     const text = await response.text();
@@ -70,7 +68,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
       throw new Error('CSV file is empty or could not be read');
     }
 
-    console.log(`✅ CSV text loaded: ${text.length} characters`);
     console.log(`📝 First 200 characters: ${text.substring(0, 200)}...`);
 
     const lines = text.split('\n').filter(line => line.trim()); // Remove empty lines
@@ -81,7 +78,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
     }
 
     const headers = lines[0].split(',').map(h => h.trim());
-    console.log('🏷️ CSV Headers found:', headers);
     console.log('🔢 Header count:', headers.length);
 
     // Find column indices with validation
@@ -110,7 +106,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
       throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
     }
 
-    console.log('✅ All required columns found');
 
     const data: BloomDataPoint[] = [];
     let validRows = 0;
@@ -120,8 +115,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
     // Process data with progress logging
     const totalDataRows = lines.length - 1;
     const maxRows = totalDataRows; // NO LIMIT - Load all data
-    console.log(`🔄 Processing ALL ${maxRows} rows...`);
-    console.log(`⚠️ Warning: Loading ${maxRows} rows (${Math.round(maxRows/1000)}k points)`);
 
     for (let i = 1; i <= maxRows; i++) {
       try {
@@ -174,7 +167,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
 
         // Log progress every 1000 rows
         if (i % 1000 === 0) {
-          console.log(`📊 Progress: ${i}/${maxRows} rows processed (${validRows} valid, ${invalidRows} invalid)`);
         }
       } catch (rowError) {
         parseErrors++;
@@ -182,7 +174,12 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
       }
     }
 
-    console.log('📈 Final parsing statistics:', {
+    if (data.length === 0) {
+      throw new Error('No valid data points were parsed from the CSV file');
+    }
+
+    // Log processing summary
+    console.log('📊 CSV Processing Summary:', {
       totalProcessed: maxRows,
       validRows,
       invalidRows,
@@ -190,13 +187,7 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
       successRate: `${Math.round((validRows / maxRows) * 100)}%`
     });
 
-    if (data.length === 0) {
-      throw new Error('No valid data points were parsed from the CSV file');
-    }
-
     // Log sample data points
-    console.log(`✅ Successfully loaded ${data.length} bloom data points`);
-    console.log('🎯 Sample data points:');
     console.log('First point:', data[0]);
     if (data.length > 1) {
       console.log('Last point:', data[data.length - 1]);
@@ -230,20 +221,16 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
     });
 
     // Try alternative approaches
-    console.log('🔄 Attempting fallback strategies...');
 
     // Fallback 1: Try with different fetch options
     try {
-      console.log('🔄 Fallback 1: Simplified fetch...');
       const fallbackResponse = await fetch('/us_east_features_labels_2015_2024.csv', {
         method: 'GET',
         cache: 'no-cache'
       });
       if (fallbackResponse.ok) {
-        console.log('✅ Fallback fetch successful, but original parsing failed');
         const fallbackText = await fallbackResponse.text();
         if (fallbackText && fallbackText.length > 0) {
-          console.log('🔄 Attempting basic CSV parsing...');
           const lines = fallbackText.split('\n').filter(l => l.trim());
           if (lines.length > 1) {
             console.log(`📄 Found ${lines.length} lines in fallback CSV`);
@@ -283,7 +270,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
                 }
               }
               if (fallbackData.length > 0) {
-                console.log(`✅ Fallback parsing successful: ${fallbackData.length} points`);
                 return fallbackData;
               }
             }
@@ -295,7 +281,6 @@ const parseBloomCSV = async (): Promise<BloomDataPoint[]> => {
     }
 
     // Fallback 2: Return synthetic test data
-    console.log('🔄 Fallback 2: Generating synthetic test data...');
     const syntheticData: BloomDataPoint[] = [];
 
     // Generate a small grid of test points in the eastern US
@@ -347,7 +332,7 @@ const bloomToClimateData = (bloomData: BloomDataPoint[]): HistoricalClimateData[
   }));
 };
 
-// Filter data by time - Enhanced with debugging
+// Filter data by time
 const filterBloomDataByTime = (data: BloomDataPoint[], requestedYear?: number, requestedMonth?: number): BloomDataPoint[] => {
   if (!data || data.length === 0) {
     console.warn('⚠️ filterBloomDataByTime: No input data provided');
@@ -356,7 +341,6 @@ const filterBloomDataByTime = (data: BloomDataPoint[], requestedYear?: number, r
 
   // Just return all available data without time filtering
   // This eliminates the mismatched year/month issue
-  console.log(`✅ Using all available data: ${data.length} points (time filtering disabled)`);
   return data;
 };
 
@@ -396,7 +380,7 @@ const getHistoricalClimateRiskColor = (ndvi: number): string => {
   if (ndvi < 0.3) return '#FF0000'; // Red - poor
   if (ndvi < 0.5) return '#FFA500'; // Orange - fair
   if (ndvi < 0.7) return '#FFFF00'; // Yellow - good
-  return '#00FF00'; // Green - excellent
+  return '#00FF00'; // Green
 };
 
 // Get color for bloom status
@@ -497,7 +481,6 @@ const EarthGlobe: React.FC = () => {
 
   // Add debugging for active layers
   useEffect(() => {
-    console.log('🎛️ ACTIVE LAYERS CHANGED:', activeLayers);
   }, [activeLayers]);
 
   const [bloomData, setBloomData] = useState<BloomDataPoint[]>([]);
@@ -539,17 +522,14 @@ const EarthGlobe: React.FC = () => {
   const handleLayerToggle = (layer: 'climate' | 'bloom') => {
     setActiveLayers(prev => {
       const newState = { ...prev, [layer]: !prev[layer] };
-      console.log(`🔄 Layer toggle: ${layer} = ${newState[layer]}`);
       return newState;
     });
   };
 
-  // Load global bloom data on mount - Enhanced with debugging
+  // Load global bloom data on mount
   useEffect(() => {
     const loadGlobalBloomData = async () => {
-      console.log('🌍 Starting global bloom data loading process...');
       console.log('⏰ Load timestamp:', new Date().toISOString());
-      console.log('🎯 Initial active layers:', activeLayers);
       console.log('📅 Current time state:', currentTime.toISOString());
       console.log('⏰ Load timestamp:', new Date().toISOString());
 
@@ -557,12 +537,6 @@ const EarthGlobe: React.FC = () => {
         // Load US East CSV data (ground truth)
         console.log('📂 Calling parseBloomCSV()...');
         const usEastData = await parseBloomCSV();
-
-        console.log('📊 parseBloomCSV() returned:', {
-          isArray: Array.isArray(usEastData),
-          length: usEastData?.length || 0,
-          hasData: usEastData && usEastData.length > 0
-        });
 
         if (!usEastData || usEastData.length === 0) {
           console.error('❌ No bloom data received from parseBloomCSV()');
@@ -590,11 +564,6 @@ const EarthGlobe: React.FC = () => {
           // Combine US East and Americas data
           const combinedData = [...usEastData, ...americasData];
           setBloomData(combinedData);
-          console.log('✅ Combined data loaded:', {
-            usEast: usEastData.length,
-            americas: americasData.length,
-            total: combinedData.length
-          });
 
           // Initialize global bloom data with US East and Americas
           const initialGlobalData = new Map<string, BloomDataPoint[]>();
@@ -614,7 +583,8 @@ const EarthGlobe: React.FC = () => {
           initialGlobalData.set('us-east', usEastOnlyData);
           initialGlobalData.set('americas', americasOnlyData);
           setGlobalBloomData(initialGlobalData);
-          console.log('✅ setGlobalBloomData() called with:', {
+
+          console.log('Global data initialized:', {
             usEast: usEastOnlyData.length,
             americas: americasOnlyData.length
           });
@@ -622,7 +592,6 @@ const EarthGlobe: React.FC = () => {
           console.error('❌ Failed to load Americas data:', error);
           // Fall back to just US East data if Americas loading fails
           setBloomData(usEastData);
-          console.log('⚠️ Using US East data only:', usEastData.length, 'points');
 
           // Still need to initialize global bloom data with just US East
           const initialGlobalData = new Map<string, BloomDataPoint[]>();
@@ -633,15 +602,10 @@ const EarthGlobe: React.FC = () => {
         // Convert bloom data to historical climate data
         const historicalClimate = bloomToClimateData(usEastData);
         setClimateData(historicalClimate);
-        console.log('✅ setClimateData() called with', historicalClimate.length, 'points');
 
-        console.log(`🌸 Final result: Loaded ${usEastData.length} US East bloom data points (2015-2024)`);
         if (usEastData.length > 0) {
-          console.log('🎯 First loaded data point:', usEastData[0]);
         }
-        console.log(`🌡️ Converted to ${historicalClimate.length} historical climate data points`);
 
-        console.log('🎉 Global bloom data loading completed successfully!');
       } catch (error: any) {
         console.error('💥 Critical error in loadGlobalBloomData:', error);
         console.error('🔍 Error details:', {
@@ -668,7 +632,6 @@ const EarthGlobe: React.FC = () => {
 
       // Check if we have valid cached data
       if (cachedData && (Date.now() - cachedData.timestamp < cacheExpiryTime)) {
-        console.log(`📊 Using cached Americas data (${cachedData.data.length} points)`);
         setGlobalBloomData(prev => new Map(prev).set('americas', cachedData.data));
       } else {
         // Load new Americas data
@@ -681,7 +644,6 @@ const EarthGlobe: React.FC = () => {
             'both'
           );
 
-          console.log(`✅ Loaded ${americasData.length} Americas points for ${currentYear}-${String(currentMonth).padStart(2, '0')}`);
 
           // Store in cache
           setDataCache(prev => new Map(prev).set(cacheKey, {
@@ -691,7 +653,6 @@ const EarthGlobe: React.FC = () => {
 
           // Update global bloom data
           setGlobalBloomData(prev => new Map(prev).set('americas', americasData));
-          console.log(`📊 Americas data added to global data map`);
         } catch (error) {
           console.error('❌ Failed to load Americas data:', error);
         }
@@ -706,14 +667,12 @@ const EarthGlobe: React.FC = () => {
 
   // Auto-update TLE data every hour from CelesTrak API
   useEffect(() => {
-    console.log('🛰️ Starting TLE auto-update...');
     const cleanup = startTLEAutoUpdate((tleData) => {
       console.log('📡 Received TLE data:', tleData.size, 'satellites');
       setSatellites(prevSats =>
         prevSats.map(sat => {
           const updatedTLE = tleData.get(sat.noradId);
           if (updatedTLE) {
-            console.log(`✅ Updated TLE for ${sat.name}:`, updatedTLE);
             return { ...sat, ...updatedTLE };
           } else {
             console.warn(`❌ No TLE data for ${sat.name} (NORAD ${sat.noradId})`);
@@ -873,7 +832,6 @@ const EarthGlobe: React.FC = () => {
     if (!viewerRef.current) return;
 
     const viewer = viewerRef.current;
-    console.log('🎯 Setting up Cesium viewer...');
 
     // High-quality rendering settings
     viewer.scene.globe.enableLighting = true;
@@ -954,12 +912,10 @@ const EarthGlobe: React.FC = () => {
     startRotation();
 
     // Load country boundaries - using simpler approach with PolylineCollection
-    console.log('🗺️ Loading country boundaries...');
 
     fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
       .then(response => response.json())
       .then(geojson => {
-        console.log('✅ Country GeoJSON loaded:', geojson.features.length, 'countries');
 
         // Create entities for each country
         geojson.features.forEach((feature: any) => {
@@ -1007,7 +963,6 @@ const EarthGlobe: React.FC = () => {
           }
         });
 
-        console.log(`✅ Drew ${geojson.features.length} country boundaries`);
       })
       .catch(error => {
         console.error('❌ Failed to load country boundaries:', error);
@@ -1016,7 +971,6 @@ const EarthGlobe: React.FC = () => {
     // Region click handler - zoom to selected location
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
-    console.log('🎯 Event handler registered');
 
     // Single click - select country or region and zoom
     handler.setInputAction((click: any) => {
@@ -1036,7 +990,6 @@ const EarthGlobe: React.FC = () => {
 
       // If clicked on satellite, don't zoom
       if (pickedObject && pickedObject.id && pickedObject.id.position) {
-        console.log('🛰️ Clicked on satellite');
         return;
       }
 
@@ -1057,7 +1010,6 @@ const EarthGlobe: React.FC = () => {
           entity.polygon!.outlineWidth = new ConstantProperty(3);
         }
       } else {
-        console.log('🌍 Clicked on globe:', latitude.toFixed(2), longitude.toFixed(2));
       }
 
       // Store both lat/lng and 3D cartesian position
@@ -1078,7 +1030,6 @@ const EarthGlobe: React.FC = () => {
         },
         duration: 1.5,
         complete: () => {
-          console.log('✅ Camera moved to:', locationName, `(${latitude.toFixed(2)}, ${longitude.toFixed(2)})`);
           // Enable tracking after fly animation completes
           if (selectedCartesian) {
             console.log('🔒 Camera lock enabled for location');
@@ -1089,7 +1040,6 @@ const EarthGlobe: React.FC = () => {
 
     // Double-click - reset camera to global view
     handler.setInputAction(() => {
-      console.log('🌍 Reset to global view');
       setSelectedLocation(null);
       setSelectedCartesian(null);
       viewer.camera.flyTo({
@@ -1118,7 +1068,6 @@ const EarthGlobe: React.FC = () => {
 
     const viewer = viewerRef.current;
     viewer.clock.multiplier = simulationSpeed;
-    console.log(`⏱️ Simulation speed updated to ${simulationSpeed}x`);
   }, [simulationSpeed]);
 
   // Control pause/play state - stop Cesium clock and lighting updates
@@ -1129,9 +1078,7 @@ const EarthGlobe: React.FC = () => {
     viewer.clock.shouldAnimate = !isPaused;
 
     if (isPaused) {
-      console.log('⏸️ Simulation PAUSED - Earth rotation and lighting frozen');
     } else {
-      console.log('▶️ Simulation RESUMED - Earth rotation and lighting active');
     }
   }, [isPaused]);
 
@@ -1176,9 +1123,8 @@ const EarthGlobe: React.FC = () => {
       return vizType === 'climate' || vizType === 'bloom' || vizType === 'ndvi';
     });
     visualizationEntities.forEach((e: any) => entities.remove(e));
-    console.log(`🗑️ Removed ${visualizationEntities.length} visualization entities`);
 
-    console.log(`🌍 VISUALIZATION LAYER UPDATE:`, {
+    console.log('🔄 Visualization update:', {
       climate: activeLayers.climate,
       bloom: activeLayers.bloom,
       cameraHeight: Math.round(cameraHeight / 1000) + 'km',
@@ -1243,7 +1189,6 @@ const EarthGlobe: React.FC = () => {
         });
       });
 
-      console.log(`✅ CLIMATE RENDERING COMPLETE: Added ${climateRegions.length} historical climate overlay regions (${filteredClimateData.length} data points, ${currentYear}-${String(currentMonth).padStart(2, '0')})`);
     } else {
       console.log(`🚫 CLIMATE LAYER NOT RENDERED:`, {
         climateLayerActive: activeLayers.climate,
@@ -1257,7 +1202,7 @@ const EarthGlobe: React.FC = () => {
       const currentYear = currentTime.getFullYear();
       const currentMonth = currentTime.getMonth() + 1;
 
-      console.log('🌸 BLOOM LAYER RENDERING:', {
+      console.log('🌸 Bloom layer rendering:', {
         bloomLayerActive: activeLayers.bloom,
         globalBloomDataSize: globalBloomData.size,
         currentTime: { year: currentYear, month: currentMonth },
@@ -1284,11 +1229,10 @@ const EarthGlobe: React.FC = () => {
         pixelSize = 4;
       }
 
-      console.log('🎯 Rendering parameters:', { maxPointsPerRegion, pixelSize });
 
       // Render data from all regions with performance optimization
       globalBloomData.forEach((regionData, regionId) => {
-        console.log(`🗺️ Processing region: ${regionId}`, {
+        console.log(`🗺️ Processing region ${regionId}:`, {
           regionDataLength: regionData.length,
           hasData: regionData.length > 0
         });
@@ -1303,7 +1247,7 @@ const EarthGlobe: React.FC = () => {
         // For US East, filter by time like before
         if (regionId === 'us-east') {
           filteredData = filterBloomDataByTime(regionData, currentYear, currentMonth);
-          console.log(`🌸 US East filtered data:`, {
+          console.log(`📅 Time filtering for ${regionId}:`, {
             originalCount: regionData.length,
             filteredCount: filteredData.length,
             filterCriteria: { year: currentYear, month: currentMonth }
@@ -1313,7 +1257,6 @@ const EarthGlobe: React.FC = () => {
           if (filteredData.length === 0) {
             filteredData = filterBloomDataByTime(regionData, 2020, 4);
             console.log(`📅 No US East data for ${currentYear}-${currentMonth}, using 2020-04 data instead`);
-            console.log(`🔄 Fallback data count: ${filteredData.length}`);
           }
 
           // Try additional fallbacks if still no data
@@ -1322,17 +1265,14 @@ const EarthGlobe: React.FC = () => {
             const data2020 = filterBloomDataByTime(regionData, 2020, 1);
             if (data2020.length > 0) {
               filteredData = data2020;
-              console.log(`🔄 Using 2020-01 data as final fallback: ${filteredData.length} points`);
             } else {
               // Use first available data
               filteredData = regionData.slice(0, 1000);
-              console.log(`🔄 Using first 1000 points as emergency fallback`);
             }
           }
         } else {
           // For other regions, data is already generated for current time
           filteredData = regionData;
-          console.log(`🌍 Other region ${regionId}: using ${filteredData.length} points`);
         }
 
         if (filteredData.length === 0) {
@@ -1340,12 +1280,11 @@ const EarthGlobe: React.FC = () => {
           return;
         }
 
-        console.log(`✅ Region ${regionId} will render ${filteredData.length} points`);
 
         // Apply performance-based point limiting with smart sampling
         let limitedData: BloomDataPoint[];
 
-        console.log(`🎯 Performance optimization for ${regionId}:`, {
+        console.log(`⚡ Performance limiting for ${regionId}:`, {
           filteredDataCount: filteredData.length,
           maxPointsPerRegion,
           needsLimiting: filteredData.length > maxPointsPerRegion,
@@ -1353,7 +1292,7 @@ const EarthGlobe: React.FC = () => {
         });
 
         if (filteredData.length > maxPointsPerRegion) {
-          // Sample points more intelligently - prioritize high NDVI and diverse bloom stages
+          // Sample points - prioritize high NDVI and diverse bloom stages
           const sortedData = [...filteredData].sort((a, b) => {
             // Prioritize: 1) Peak bloom, 2) High NDVI, 3) Early bloom, 4) Pre-bloom
             const priorityA = a.label * 1000 + a.NDVI * 100;
@@ -1369,7 +1308,7 @@ const EarthGlobe: React.FC = () => {
 
           limitedData = [...topPriority, ...randomSample];
 
-          console.log(`✂️ Data sampling applied:`, {
+          console.log(`📊 Data sampling for ${regionId}:`, {
             original: filteredData.length,
             topPriority: topPriority.length,
             randomSample: randomSample.length,
@@ -1378,11 +1317,9 @@ const EarthGlobe: React.FC = () => {
           });
         } else {
           limitedData = filteredData;
-          console.log(`✅ No sampling needed: using all ${limitedData.length} points`);
         }
 
         // Batch entity creation for better performance
-        console.log(`🏛️ Creating entities for region ${regionId}:`, limitedData.length, 'points');
 
         const pointEntities = limitedData.map((point, index) => {
           const entityOptions = {
@@ -1404,7 +1341,7 @@ const EarthGlobe: React.FC = () => {
 
           // Log sample entities for debugging
           if (index < 3) {
-            console.log(`🎯 Sample entity ${index}:`, {
+            console.log(`🎯 Sample entity ${index} for ${regionId}:`, {
               lat: point.lat,
               lon: point.lon,
               bloomStatus: getBloomStatusName(point.label),
@@ -1416,7 +1353,6 @@ const EarthGlobe: React.FC = () => {
           return entityOptions;
         });
 
-        console.log(`📊 Point entities created: ${pointEntities.length}`);
 
         // Add entities in smaller batches to prevent blocking
         const batchSize = 100;
@@ -1441,10 +1377,8 @@ const EarthGlobe: React.FC = () => {
 
         totalPoints += limitedData.length;
         console.log(`⚡ Successfully added ${entitiesAdded}/${limitedData.length} entities for ${regionId}`);
-        console.log(`✅ Rendered ${limitedData.length}/${filteredData.length} bloom points for ${regionId} (zoom-optimized)`);
       });
 
-      console.log(`✅ BLOOM RENDERING COMPLETE: Added ${totalPoints} total bloom points globally (performance optimized)`);
 
       if (totalPoints === 0) {
         console.error(`💥 CRITICAL: No bloom points were rendered despite having data!`);
@@ -1468,7 +1402,7 @@ const EarthGlobe: React.FC = () => {
 
   // Debug effect to monitor state changes
   useEffect(() => {
-    console.log('📊 STATE CHANGE DEBUG:', {
+    console.log('🔄 State change detected:', {
       bloomDataLength: bloomData.length,
       globalBloomDataSize: globalBloomData.size,
       climateDataLength: climateData.length,
@@ -2018,7 +1952,6 @@ const EarthGlobe: React.FC = () => {
 
                 // Jump to this time immediately
                 setCurrentTime(newDate);
-                console.log('⏭️ Jumped to entered time:', newDate.toISOString().slice(0, 7));
 
                 // Format and update the input field
                 const formattedValue = `${targetYear}-${String(month).padStart(2, '0')}`;
